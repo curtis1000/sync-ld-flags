@@ -24,9 +24,9 @@ function patchFlag (patch, key, cb) {
   request.patch(options, cb);
 }
 
-var fetchFlags = function (cb) {
+var fetchFlag = function (cb) {
   var options = {
-    url: baseUrl + '/flags/' + projectKey,
+    url: baseUrl + '/flags/' + projectKey + '/' + flagKey,
     headers: {
       'Authorization': apiToken,
       'Content-Type': 'application/json'
@@ -35,7 +35,7 @@ var fetchFlags = function (cb) {
 
   function callback (error, response, body) {
     if (!error && response.statusCode === 200) {
-      cb(null, JSON.parse(body).items);
+      cb(null, JSON.parse(body));
     }
     else {
       cb(error);
@@ -60,50 +60,52 @@ var copyValues = function (flag, destinationEnvironment, sourceEnvironment) {
 }
 
 function syncEnvironment (fromKey, toKey) {
-  fetchFlags(function (err, flags) {
+  fetchFlag(function (err, flag) {
     if (err) {
-      throw new Error('Error fetching flags');
+      throw new Error('Error fetching flag');
     }
 
-    flags.forEach(function (flag) {
-      var fromFlag = flag.environments[sourceEnvironment],
-          toFlag =  flag.environments[destinationEnvironment],
-          observer = jsonpatch.observe(flag);
+    var fromFlag = flag.environments[sourceEnvironment],
+        toFlag =  flag.environments[destinationEnvironment],
+        observer = jsonpatch.observe(flag);
 
-      if (!fromFlag) {
-        throw new Error('Missing source environment flag. Did you specify the right project?');
-      }
-      if (!toFlag) {
-        throw new Error('Missing destination environment flag. Did you specify the right project?');
-      }
-      console.log('Syncing ' + flag.key)
-      copyValues(flag, destinationEnvironment, sourceEnvironment)
+    if (!fromFlag) {flag
+      throw new Error('Missing source environment flag. Did you specify the right project?');
+    }
+    if (!toFlag) {
+      throw new Error('Missing destination environment flag. Did you specify the right project?');
+    }
+    console.log('Syncing ' + flag.key)
+    copyValues(flag, destinationEnvironment, sourceEnvironment)
 
-      var diff = jsonpatch.generate(observer);
+    var diff = jsonpatch.generate(observer);
 
-      if (diff.length > 0) {
-        console.log('Modifying', flag.key, 'with', diff);
-        patchFlag(JSON.stringify(diff), flag.key, function (err) {
-          if (err) {
-            throw new Error(err);
-          }
-        });
-      } else {
-        console.log('No changes in ' + flag.key)
-      }
-    });
-
+    if (diff.length > 0) {
+      console.log('Modifying', flag.key, 'with', diff);
+      patchFlag(JSON.stringify(diff), flag.key, function (err) {
+        if (err) {
+          throw new Error(err);
+        }
+      });
+    } else {
+      console.log('No changes in ' + flag.key)
+    }
   });
 }
 
 if (require.main === module) {
   var projectKey = process.argv[2],
-      sourceEnvironment = process.argv[3],
-      destinationEnvironment = process.argv[4],
-      apiToken = process.argv[5];
+      flagKey = process.argv[3],
+      sourceEnvironment = process.argv[4],
+      destinationEnvironment = process.argv[5],
+      apiToken = process.argv[6];
 
   if (!projectKey) {
     throw new Error('Missing project key for sync');
+  }
+
+  if (!flagKey) {
+    throw new Error('Missing flag key for sync');
   }
 
   if (!sourceEnvironment) {
@@ -121,6 +123,6 @@ if (require.main === module) {
   if (!apiToken) {
     throw new Error('Missing api token for sync');
   }
-  
+
   syncEnvironment(sourceEnvironment, destinationEnvironment);
 }
