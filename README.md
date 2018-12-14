@@ -25,6 +25,13 @@ Quick setup
 
         node index.js PROJECT_KEY FLAG_KEY SOURCE_ENVIRONMENT_KEY DEST_ENVIRONMENT_KEY API_TOKEN
 
+Example Usage
+-----------
+
+```
+node index.js default pricing-page-redesign staging production <my personal api token>
+```
+
 Note
 ----
 
